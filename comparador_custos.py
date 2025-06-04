@@ -71,7 +71,7 @@ def formatar_tipo(val, tipo):
     except:
         return str(val)
 
-st.title("Comparação Visual - Atualizado para valores iguais só aparecer uma vez")
+st.title("Comparação Visual - PCFP")
 col1, col2 = st.columns(2)
 with col1:
     arquivo_antigo = st.file_uploader("Planilha Antiga", type="xlsx")
