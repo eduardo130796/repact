@@ -70,8 +70,8 @@ def formatar_tipo(val, tipo):
             return f"{val_f:.2f}".replace(".", ",")
     except:
         return str(val)
-
-st.title("Comparação Visual - PCFP")
+st.set_page_config(layout="centered")  # centraliza e limita largura da página
+st.title("Comparação Visual - PCF")
 col1, col2 = st.columns(2)
 with col1:
     arquivo_antigo = st.file_uploader("Planilha Antiga", type="xlsx")
@@ -93,7 +93,19 @@ if arquivo_antigo and arquivo_novo:
         comparacao = comparar_linhas(linhas_antigo, linhas_novo)
 
 
+        # Função para checar se tem diferença relevante nas colunas C-F
+        def tem_diferenca(item):
+            for col in ['C', 'D', 'E', 'F']:
+                val_antigo = item.get(f'antigo_{col}')
+                val_novo = item.get(f'novo_{col}')
+                if (val_antigo or val_novo) and val_antigo != val_novo:
+                    return True
+            return False
+
         for item in comparacao:
+            if not tem_diferenca(item):
+                continue
+
             mostrar = False
             for col in ['C', 'D', 'E', 'F']:
                 val_antigo = item.get(f'antigo_{col}')
@@ -101,49 +113,90 @@ if arquivo_antigo and arquivo_novo:
                 if (val_antigo or val_novo) and val_antigo != val_novo:
                     mostrar = True
                     break
-
             if not mostrar:
                 continue
 
-           # Verifica se algum valor antes era zero/vazio e agora tem valor
-            # Verifica se algum valor antes era zero/vazio e agora tem valor
             era_zerado_e_virou_valor = any(
-                (item.get(f'antigo_{col}') in [None, "", 0, "0", "0.0"]) and (item.get(f'novo_{col}') not in [None, "", 0, "0", "0.0"])
+                (item.get(f'antigo_{col}') in [None, "", 0, "0", "0.0"]) and
+                (item.get(f'novo_{col}') not in [None, "", 0, "0", "0.0"])
                 for col in ['C', 'D', 'E', 'F']
             )
 
-            # Mostra título padrão ou textos lado a lado conforme o caso
+            # Header compacto, texto antigo/novo lado a lado só se houve entrada nova
             if era_zerado_e_virou_valor:
                 st.markdown(f"""
-                    <div style='background-color:#fff4e5; padding: 6px 5px; border-left: 4px solid #fbbc05; margin: 5px 0 2px 0; border-radius: 4px;'>
-                        <div style="display: grid; grid-template-columns: 29% 48%; gap: 4%; font-size: 12px; color: #333; font-weight: 500;">
-                            <div><span style='color:#1a73e8;'>Texto antigo:</span><br>{item['antigo_B'] or '-'}</div>
-                            <div><span style='color:#ea4335;'>Texto novo:</span><br>{item['novo_B'] or '-'}</div>
+                    <div style="
+                        background:#fff9e6; 
+                        border-left:4px solid #fbbc05; 
+                        padding:6px 8px; 
+                        margin:6px 0 4px 0; 
+                        border-radius:5px;
+                        font-size:13px;
+                        display:flex;
+                        justify-content:space-between;
+                        gap:10px;
+                    ">
+                        <div style="flex:1; color:#1a73e8; font-weight:600;">
+                            Antigo:<br><span style='color:#333;'>{item['antigo_B'] or '-'}</span>
+                        </div>
+                        <div style="flex:1; color:#ea4335; font-weight:600;">
+                            Novo:<br><span style='color:#333;'>{item['novo_B'] or '-'}</span>
                         </div>
                     </div>
                 """, unsafe_allow_html=True)
             else:
                 st.markdown(f"""
-                    <div style='background-color:#f5f5f5; padding: 4px 8px; border-left: 4px solid #1a73e8; margin: 8px 0 4px 0;'>
-                        <div style='font-size: 13px; font-weight: 500; color: #333;'>
-                            <strong>{item['campo']} - {item['antigo_B'] or "-"}</strong>
-                        </div>
+                    <div style="
+                        background:#f0f0f0; 
+                        border-left:4px solid #1a73e8; 
+                        padding:6px 10px; 
+                        margin:6px 0 4px 0; 
+                        border-radius:5px;
+                        font-weight:600;
+                        font-size:13px;
+                        color:#333;
+                    ">
+                        {item['campo']} - {item['antigo_B'] or '-'}
                     </div>
                 """, unsafe_allow_html=True)
-
+            # Acordeão para compactar visual
+            
             st.markdown("""
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; font-weight: 500; font-size: 12px; color: #555; border-bottom: 1px solid #ddd; padding-bottom: 2px; margin-bottom: 4px;">
-                    <div style='color:#1a73e8;'>Antigo</div>
-                    <div style='color:#f9ab00;'>Novo</div>
-                    <div style='color:#d93025;'>Diferença</div>
+                <style>
+                    .grid-header {
+                        display: grid; 
+                        grid-template-columns: 1.5fr 1.5fr 1fr; 
+                        font-weight: 600; 
+                        font-size: 13px; 
+                        color: #2c3e50; 
+                        padding-bottom: 2px; 
+                        border-bottom: 1px solid #bbb;
+                        margin-bottom: 6px;
+                    }
+                    .grid-row {
+                        display: grid; 
+                        grid-template-columns: 1.5fr 1.5fr 1fr;
+                        padding: 2px 0;
+                        font-size: 12px;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .antigo { color: #1a73e8; }
+                    .novo { color: #f9ab00; }
+                    .diferenca { color: #d93025; font-weight: 700; }
+                    .novo-destaque { background-color: #e6f4ea; font-weight: 600; border-radius: 4px; padding: 1px 4px; display: inline-block;}
+                </style>
+            """, unsafe_allow_html=True)
+
+            st.markdown(f"""
+                <div class="grid-header">
+                    <div>Antigo</div><div>Novo</div><div>Diferença</div>
                 </div>
             """, unsafe_allow_html=True)
-    
+
             for col in ['C', 'D', 'E', 'F']:
                 val_antigo = item.get(f'antigo_{col}')
                 val_novo = item.get(f'novo_{col}')
                 tipo = item.get(f'tipo_{col}')
-                
 
                 if (val_antigo in [None, ""]) and (val_novo in [None, ""]):
                     continue
@@ -154,9 +207,9 @@ if arquivo_antigo and arquivo_novo:
                     dif = val2 - val1
                     pct = (dif / val1) * 100 if val1 != 0 else None
                     cor = "#34a853" if dif > 0 else "#ea4335" if dif < 0 else "#333"
-                    dif_formatado = f"<span style='color:{cor}; font-weight:600;'>R$ {dif:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") + "</span>"
+                    dif_formatado = f"<span class='diferenca'>R$ {dif:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".") + "</span>"
                     if pct is not None:
-                        dif_formatado += f" <span style='color:{cor}; font-weight:400;'>({pct:+.1f}%)</span>"
+                        dif_formatado += f" <span style='font-weight:400;'>{pct:+.1f}%</span>"
                 except:
                     dif_formatado = "<span style='color:#888;'>–</span>"
 
@@ -164,13 +217,15 @@ if arquivo_antigo and arquivo_novo:
                     dif_formatado = "<span style='color:#aaa;'>–</span>"
 
                 destaque_estilo = ""
+                destaque_text = ""
                 if (val_antigo in [None, "", 0, "0", "0.0"]) and (val_novo not in [None, "", 0, "0", "0.0"]):
-                    destaque_estilo = "background-color: #e6f4ea; font-weight: 600; border-radius: 4px; padding: 2px 4px;"
+                    destaque_estilo = "background-color: #e6f4ea; font-weight: 600; border-radius: 4px; padding: 1px 4px; display: inline-block;"
+                    destaque_text = " 🆕"
 
                 st.markdown(f"""
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; margin-bottom: 6px;">
-                        <div>{formatar_tipo(val_antigo, tipo)}</div>
-                        <div style="{destaque_estilo}">{formatar_tipo(val_novo, tipo)}{' 🆕' if destaque_estilo else ''}</div>
+                    <div class="grid-row">
+                        <div class="antigo">{formatar_tipo(val_antigo, tipo)}</div>
+                        <div class="novo" style="{destaque_estilo}">{formatar_tipo(val_novo, tipo)}{destaque_text}</div>
                         <div>{dif_formatado}</div>
                     </div>
                 """, unsafe_allow_html=True)
